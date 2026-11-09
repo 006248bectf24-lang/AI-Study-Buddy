@@ -18,13 +18,18 @@ app.set("trust proxy", 1); // needed behind Vercel's proxy for rate limiting
 
 app.use(helmet());
 
-const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:5173")
-  .split(",")
-  .map((s) => s.trim());
+const allowedOrigins = new Set([
+  "http://localhost:5173",
+  "https://ai-study-buddy-theta-one.vercel.app",
+  ...(process.env.CLIENT_URL || "").split(",").map((origin) => origin.trim()).filter(Boolean),
+  process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "",
+]);
 app.use(
   cors({
     origin: (origin, cb) =>
-      !origin || allowedOrigins.includes(origin)
+      !origin || allowedOrigins.has(origin)
         ? cb(null, true)
         : cb(new Error("Not allowed by CORS")),
   })

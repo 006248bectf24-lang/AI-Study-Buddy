@@ -1,7 +1,9 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  // In production, call the API through the same Vercel domain. A configured
+  // VITE_API_URL can still point to a separately hosted backend.
+  baseURL: import.meta.env.VITE_API_URL || "/api",
 });
 
 // Attach the JWT to every request
