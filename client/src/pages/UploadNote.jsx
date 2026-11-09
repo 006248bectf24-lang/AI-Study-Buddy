@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import api, { getErrorMessage } from "../api/axios.js";
 import Spinner from "../components/Spinner.jsx";
@@ -13,10 +13,10 @@ export default function UploadNote() {
   const [loading, setLoading] = useState(false);
 
   const handleFile = (e) => {
-    const f = e.target.files?.[0];
+    const f = e.target.files[0];
     if (!f) return;
     if (f.type !== "application/pdf") return toast.error("Please choose a PDF file");
-    if (f.size > 10 * 1024 * 1024) return toast.error("PDF must be under 10 MB");
+    if (f.size > 4 * 1024 * 1024) return toast.error("PDF must be under 4 MB");
     setFile(f);
     if (!title) setTitle(f.name.replace(/\.pdf$/i, ""));
   };
@@ -25,7 +25,7 @@ export default function UploadNote() {
     e.preventDefault();
     if (mode === "pdf" && !file) return toast.error("Please choose a PDF file");
     if (mode === "text" && text.trim().length < 50) {
-      return toast.error("Please paste at least 50 characters of study material");
+      return toast.error("Please paste at least 50 characters");
     }
 
     const formData = new FormData();
@@ -37,7 +37,7 @@ export default function UploadNote() {
     try {
       const res = await api.post("/notes", formData);
       if (res.data.warning) toast(res.data.warning, { icon: "⚠️", duration: 6000 });
-      else toast.success("Study note created with AI summary!");
+      else toast.success("Note created with AI summary!");
       navigate(`/notes/${res.data.note._id}`);
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -45,129 +45,60 @@ export default function UploadNote() {
     }
   };
 
-  return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <Link to="/" className="text-xs font-semibold text-slate-500 hover:text-indigo-600 transition mb-1 inline-block">
-          ← Back to Dashboard
-        </Link>
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          Add New Study Note
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Upload your notes or PDF slides to automatically generate in-depth chapter summaries, flashcards, and quizzes.
-        </p>
-      </div>
+  const tabClass = (active) =>
+    `px-4 py-2 rounded-lg text-sm font-medium ${
+      active ? "bg-indigo-600 text-white" : "bg-white border border-slate-300 text-slate-600"
+    }`;
 
-      <form onSubmit={handleSubmit} className="card space-y-5 bg-white border border-slate-200/90 shadow-sm p-6 sm:p-8">
-        {/* Title Input */}
+  return (
+    <div className="max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Add a note</h1>
+      <form onSubmit={handleSubmit} className="card space-y-4">
         <div>
-          <label className="label">Note Title</label>
+          <label className="label">Title</label>
           <input
             required
             maxLength={150}
             className="input"
-            placeholder="e.g. Chapter 3: Cellular Respiration & ATP"
+            placeholder="e.g. Chapter 3 - Photosynthesis"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
         </div>
 
-        {/* Input Mode Switcher */}
-        <div>
-          <label className="label">Input Method</label>
-          <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
-            <button
-              type="button"
-              className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                mode === "text"
-                  ? "bg-white text-indigo-700 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-              onClick={() => setMode("text")}
-            >
-              ✍️ Paste Text
-            </button>
-            <button
-              type="button"
-              className={`py-2 text-xs font-bold rounded-lg transition-all ${
-                mode === "pdf"
-                  ? "bg-white text-indigo-700 shadow-xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-              onClick={() => setMode("pdf")}
-            >
-              📄 Upload PDF
-            </button>
-          </div>
+        <div className="flex gap-2">
+          <button type="button" className={tabClass(mode === "text")} onClick={() => setMode("text")}>
+            Paste text
+          </button>
+          <button type="button" className={tabClass(mode === "pdf")} onClick={() => setMode("pdf")}>
+            Upload PDF
+          </button>
         </div>
 
-        {/* Mode-specific Input */}
         {mode === "text" ? (
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="label !mb-0">Study Notes Content</label>
-              <span className="text-[11px] font-semibold text-slate-400">
-                {text.length} characters (min 50)
-              </span>
-            </div>
+            <label className="label">Your notes</label>
             <textarea
-              rows={10}
-              className="input font-mono text-xs leading-relaxed"
-              placeholder="Paste your lecture notes, textbook chapters, or summary notes here..."
+              rows={12}
+              className="input"
+              placeholder="Paste your study notes here..."
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
+            <p className="text-xs text-slate-400 mt-1">{text.length} characters</p>
           </div>
         ) : (
           <div>
-            <label className="label">PDF Document (Max 10 MB)</label>
-            <div className="border-2 border-dashed border-indigo-200 rounded-2xl p-6 text-center hover:border-indigo-400 transition bg-indigo-50/20">
-              <div className="text-3xl mb-2">📁</div>
-              <p className="text-xs font-semibold text-slate-700 mb-1">
-                Choose a PDF file from your computer
-              </p>
-              <p className="text-[11px] text-slate-400 mb-3">
-                Lecture slides, textbook pages, or handouts
-              </p>
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={handleFile}
-                className="hidden"
-                id="pdf-upload"
-              />
-              <label
-                htmlFor="pdf-upload"
-                className="btn-secondary !py-1.5 !px-4 text-xs cursor-pointer inline-block"
-              >
-                Browse File
-              </label>
-
-              {file && (
-                <div className="mt-3 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800 flex items-center justify-center gap-2">
-                  <span>✓</span> Selected: {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                </div>
-              )}
-            </div>
+            <label className="label">PDF file (max 4 MB)</label>
+            <input type="file" accept="application/pdf" onChange={handleFile} className="input" />
+            {file && <p className="text-sm text-slate-500 mt-1">Selected: {file.name}</p>}
           </div>
         )}
 
-        {/* Submit Button */}
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary w-full !py-3 text-sm font-bold shadow-md"
-          >
-            {loading ? "Analyzing Material & Generating Summary..." : "Save Note & Generate Study Materials →"}
-          </button>
-          {loading && (
-            <div className="mt-3">
-              <Spinner small text="Reading text and using AI to formulate chapter summaries..." />
-            </div>
-          )}
-        </div>
+        <button type="submit" disabled={loading} className="btn-primary w-full">
+          {loading ? "Uploading..." : "Save & generate summary"}
+        </button>
+        {loading && <Spinner small text="Extracting text and asking the AI. This may take a while for large files..." />}
       </form>
     </div>
   );
