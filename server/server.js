@@ -4,6 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import connectDB from "./config/db.js";
+import ApiError from "./utils/ApiError.js";
 import authRoutes from "./routes/authRoutes.js";
 import noteRoutes from "./routes/noteRoutes.js";
 import flashcardRoutes from "./routes/flashcardRoutes.js";
@@ -51,7 +52,8 @@ app.use(async (req, res, next) => {
     await connectDB();
     next();
   } catch (err) {
-    next(err);
+    console.error("DB connection error:", err.message);
+    next(new ApiError(503, `Database connection failed: ${err.message}`));
   }
 });
 
